@@ -27,8 +27,8 @@ Additional Features:
 + Stochastic
 + Parametric
 
-![alt text](https://github.com/Atomkeks/codelikeadiva/blob/develop/my-artwork/artwork_Sergey-Mitchenko_2017123-19129.png)
-![alt text](https://github.com/Atomkeks/codelikeadiva/blob/develop/my-artwork/artwork_Sergey-Mitchenko_2017123-21305.png)
+![alt text](https://github.com/Atomkeks/codelikeadiva/blob/develop/my-artwork/Favorite_Picture.png)
+![alt text](https://github.com/Atomkeks/codelikeadiva/blob/develop/my-artwork/little_extra.png)
 
 #### Library notes
 In the folder customLib is a custom three.js Library, because the current version of three.js does not support the SVGRenderer.
