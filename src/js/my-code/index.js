@@ -9,7 +9,6 @@ var Parser = require('expr-eval').Parser;
 var parser= new Parser();
 
 class Artwork {
-
     constructor() {
 
     }
@@ -18,7 +17,7 @@ class Artwork {
         let width = document.getElementById('artwork-wrapper').getBoundingClientRect().width - 2;
         let height = document.getElementById('artwork-wrapper').getBoundingClientRect().height - 2;
 
-        // initialization of camera
+        //#region Initialization of camera and camera functions
         let camera = new THREE.PerspectiveCamera(75, width/height, 0.1, 10000);
         camera.position.set(0,0,0);
         camera.lookAt(new THREE.Vector3(0,0,0));
@@ -28,7 +27,7 @@ class Artwork {
         /**
          * Camera animation functions
          * animate: rotates the camera around (0,height,0)
-         * controlCamera: rotates the camera or just renders on picture
+         * controlCamera: start to rotate the camera or just renders on picture
          */
         function animate() {
             id = requestAnimationFrame( animate );
@@ -49,30 +48,34 @@ class Artwork {
                 renderer.render(scene, camera);
             }
         }
+        //#endregion
 
-        //initialization of the renderer
+        //#region Initialization of the renderer
         let renderer = new THREE.SVGRenderer();
         renderer.setClearColor(0xffffff);
-        renderer.setQuality('low');
+        renderer.setQuality('high');
         renderer.setSize(width,height);
         let artwork_wrapper = document.getElementById("artwork-wrapper");
         artwork_wrapper.appendChild(renderer.domElement);
+        //#endregion
 
+        //#region LSystem stuff
         /**
          * rule dictionary for all examples
          * Rule consists of:
-         * rule: {Array} array of Rule objects
-         * start: {String} start string of the LSystem (Axiom)
+         * rule: {Array} - array of Rule objects
+         * start: {String} - start string of the LSystem (Axiom)
          * angle: {float}
-         * number: {int} recommended number of generations
-         * draw: {String} which symbols are drawn by the interpreter
-         * params: {Dictinary} starting parameters
+         * number: {int} - recommended number of generations
+         * draw: {String} - which symbols are drawn by the interpreter
+         * params: {Dictionary} - starting parameters
+         * bool: {Dictionary} - options for the interpreter/drawer
          */
         var ruleDict = {
-            "2DTree" : {rule : [new Rule("F", null,[["FF-[-F+F+F]+[+F-F-F]"]],[[1]])] , start : "F", angle : 22.5, number : 3, draw:"F"},
-            "Quadratic_Koch_Island" : {rule: [new Rule("F", null,[["F-F+F+FF-F-F+F"]],[[1]])], start : "F-F-F-F", angle: 90, number : 2, draw:"F"},
-            "Dense_Koch_Curve": {rule: [new Rule("F", null,[["F-FF--F-F"]],[[1]])], start : "F-F-F-F", angle:90, number: 3, draw:"F"},
-            "3DTest" : { rule:[
+            "2D_Tree" : {rule : [new Rule("F", null,[["FF-[-F+F+F]+[+F-F-F]"]],[[1]])] , start : "F", angle : 22.5, number : 4, draw:"F"},
+            "Quadratic_Koch_Island" : {rule: [new Rule("F", null,[["F-F+F+FF-F-F+F"]],[[1]])], start : "F-F-F-F", angle: 90, number : 3, draw:"F"},
+            "Dense_Koch_Curve": {rule: [new Rule("F", null,[["F-FF--F-F"]],[[1]])], start : "F-F-F-F", angle:90, number: 4, draw:"F"},
+            "3D_Test" : { rule:[
                 new Rule(
                     "A",
                     null,
@@ -98,8 +101,8 @@ class Artwork {
                     [[1]]
                 )
             ] , start : "A", angle:90, number: 3, draw: "F"},
-            "DragonCurve" : { rule: [new Rule("L",null,[["L+RF+"]],[[1]]), new Rule("R",null,[["-FL-R"]],[[1]])], start: "FL", angle:90, number:10, draw:"F"},
-            "TernaryTree" : { rule: [
+            "Dragon_Curve" : { rule: [new Rule("L",null,[["L+RF+"]],[[1]]), new Rule("R",null,[["-FL-R"]],[[1]])], start: "FL", angle:90, number:12, draw:"F"},
+            "Ternary_Tree" : { rule: [
                 new Rule(
                     "A",
                     null,
@@ -118,8 +121,8 @@ class Artwork {
                     [["!(w*vr)"]],
                     [[1]]
                 ),
-            ], start: "!(1)F(200)/(45)A", number:1, draw:"F", params:{"da":137.5, "db":137.5, "a":18.95, "lr":1.109, "vr":1.732, "e":0.14, "tropism": new THREE.Vector3(0,-1,0)}},
-            "RoseLeaf" : { rule: [
+            ], start: "!(1)F(200)/(45)A", number:8, draw:"F", params:{"da":137.5, "db":137.5, "a":18.95, "lr":1.109, "vr":1.732, "e":0.14, "tropism": new THREE.Vector3(0,-1,0)}, bool: {"secondary": false, "tropism":true}},
+            "Rose_Leaf" : { rule: [
                 new Rule(
                     "A(t,d)",
                     [function (_ref) {
@@ -184,62 +187,86 @@ class Artwork {
          * @param {int} n - number of generations
          * @param {float} w - width of drawn lines
          * @param {float} l - length of drawn lines
-         * @param {float} r - rotation angle of LSystem
          */
-        function startLSystem(name, color, n, w, l, r){
+        function startLSystem(name, color, n, w, l){
             let lsys = new LSystem(ruleDict[name].start, ruleDict[name].rule, ruleDict[name].params);
-            let turtle = new LSystemDrawer();
-
             //console.log(lsys.getSentence());
-
-            for(let i = 0; i<((n === undefined || n === null) ? ruleDict[name].number : n); i++){
+            for(let i = 0; i<((n === undefined) ? ruleDict[name].number : n); i++){
                 lsys.generate();
                 //console.log(lsys.getSentence());
             }
 
-            turtle.setToDo(lsys.getSentence());
-            turtle.setWidth(((w === undefined || w === null) ? 3 : w));
-            turtle.setLength(((l === undefined || l === null) ? 20 : l));
-            turtle.setRotation(((r === undefined || r === null) ? ruleDict[name].angle : r));
-            turtle.setDrawSymbols(ruleDict[name].draw);
-            if(ruleDict[name].params !== undefined && ruleDict[name].params !== null && ruleDict[name].params["tropism"] !== undefined && ruleDict[name].params["tropism"] !== null && ruleDict[name].params["e"] !== undefined && ruleDict[name].params["e"] !== null && ruleDict[name].params["e"] !== 0)
-                turtle.setTropism(ruleDict[name].params["tropism"], ruleDict[name].params["e"]);
-            turtle.setColor(color);
-
-
-            let lsys_leaf = new LSystem(ruleDict["RoseLeaf"].start, ruleDict["RoseLeaf"].rule, ruleDict["RoseLeaf"].params);
-            for(let i = 0; i<ruleDict["RoseLeaf"].number; i++){
-                lsys_leaf.generate();
+            if(name.localeCompare("Rose_Leaf")===0 || name.localeCompare("Leaf")===0){
+                color = "#030";
             }
-            turtle.setString(lsys_leaf.getSentence());
 
+            let turtle = new LSystemDrawer(lsys.getSentence(), color, ((l === undefined) ? 20 : l), ((w === undefined) ? 3 : w), ruleDict[name].angle, ruleDict[name].draw);
 
-            scene.add(turtle.render());
+            if(ruleDict[name].bool !== undefined && ruleDict[name].bool["tropism"])
+                turtle.setTropism(ruleDict[name].bool["tropism"], ruleDict[name].params["tropism"], ruleDict[name].params["e"]);
+            if(ruleDict[name].bool !== undefined && ruleDict[name].bool["secondary"]) {
+                let lsys_leaf = new LSystem(ruleDict["Rose_Leaf"].start, ruleDict["Rose_Leaf"].rule, ruleDict["Rose_Leaf"].params);
+                for(let i = 0; i<ruleDict["Rose_Leaf"].number; i++){
+                    lsys_leaf.generate();
+                }
+                turtle.setSecondaryString(lsys_leaf.getSentence());
+            }
+
+            let temp = turtle.render();
+            if(name.localeCompare("2D_Tree") === 0){
+                temp.applyMatrix(new THREE.Matrix4().makeTranslation(0,-550,0));
+                guiModifier["cameraDistance"] = 800;
+            } else if(name.localeCompare("Quadratic_Koch_Island")===0){
+                temp.applyMatrix(new THREE.Matrix4().makeTranslation(-500,-640,0));
+                guiModifier["cameraDistance"] = 1400;
+            } else if(name.localeCompare("Dense_Koch_Curve")===0){
+                temp.applyMatrix(new THREE.Matrix4().makeTranslation(-100,350,0));
+                guiModifier["cameraDistance"] = 700;
+            } else if(name.localeCompare("3D_Test")===0){
+                temp.applyMatrix(new THREE.Matrix4().makeTranslation(0,-50,0));
+                guiModifier["cameraDistance"] = 400;
+            }else if(name.localeCompare("Dragon_Curve")===0){
+                temp.applyMatrix(new THREE.Matrix4().makeTranslation(0,500,0));
+                guiModifier["cameraDistance"] = 1400;
+            } else if(name.localeCompare("Ternary_Tree")===0){
+                temp.applyMatrix(new THREE.Matrix4().makeTranslation(0,-800,0));
+                guiModifier["cameraDistance"] = 1400;
+            } else if(name.localeCompare("Rose_Leaf")===0){
+                temp.applyMatrix(new THREE.Matrix4().makeTranslation(0,-250,0));
+                guiModifier["cameraDistance"] = 400;
+            } else if(name.localeCompare("Leaf")===0){
+                temp.applyMatrix(new THREE.Matrix4().makeTranslation(0,-150,0));
+                guiModifier["cameraDistance"] = 500;
+            }
+            scene.add(temp);
         }
 
-        //TODO Branching (wind)
-        //TODO Leafes to Tree
-        //TODO Comments and Explanation
+        //#endregion
 
-        //TODO $
-        //TODO Bracnh width
+        //#region Initialization of Option Menu (GUI)
         let guiModifier = {
             renderer : "SVG",
             cameraHeight: 0,
             cameraDistance: 1000,
             rotateCamera: false,
-            color: "#ff0066",
-            width: 3,
+            color: "#8B4513",
+            width: 6,
             length: 20,
-            number: ruleDict["TernaryTree"].number,
-            rule: "TernaryTree",
+            number: ruleDict["Ternary_Tree"].number,
+            rule: "Ternary_Tree",
             redraw: function redraw(bool) {
+                // bool = undefined if Redraw Button is clicked
+                // bool = true if rule in the drop down menu is changed
+
+                //clears the scene and transformation matrix
                 while(scene.children.length > 0){
                     scene.remove(scene.children[0]);
                 }
                 currentTransform.identity();
+                //if the custom rule is selected
                 if(guiModifier["rule"].localeCompare("Custom") === 0) {
                     if(bool === undefined){
+                        //draw custom rule, but only if all necessary parameters are defined
                         if(guiModifier["customRule_angle"] !== 0 && guiModifier["customRule_start"].localeCompare("") !== 0 && customRules.length > 0){
                             for(let i = 0; i<customRules.length; i++){
                                 customRules[i].successor = [[customRules[i].successorHelper]];
@@ -252,7 +279,7 @@ class Artwork {
                             else
                                 drawTemp = guiModifier["customRule_draw"];
                             ruleDict["Custom"] = { rule: customRules, start: guiModifier["customRule_start"], angle: guiModifier["customRule_angle"], number:guiModifier["number"], draw:drawTemp};
-                            startLSystem("Custom", guiModifier["color"],guiModifier["number"], guiModifier["width"], guiModifier["length"], null);
+                            startLSystem("Custom", guiModifier["color"],guiModifier["number"], guiModifier["width"], guiModifier["length"]);
                         }
                         else
                             alert("Not all parameters of the custom rule are defined!");
@@ -260,14 +287,16 @@ class Artwork {
                         guiModifier["number"] = 0;
                     }
                 }
+                // draw selected rule which isn't the custom rule
                 else {
                     if(bool !== undefined)
                         guiModifier["number"] = ruleDict[guiModifier["rule"]]["number"];
-                    startLSystem(guiModifier["rule"], guiModifier["color"],guiModifier["number"], guiModifier["width"], guiModifier["length"], null);
+                    startLSystem(guiModifier["rule"], guiModifier["color"],guiModifier["number"], guiModifier["width"], guiModifier["length"]);
                 }
                 controlCamera();
             },
             addRule: function addRule() {
+                // adds new custom rule which the user can define
                 newRulesFolder.push(ruleFolder.addFolder("Rule " + ruleNumber));
                 customRules.push(new Rule("", null, [[""]], [[1]]));
                 modifierFunctions["customRule_"+ruleNumber+"_pre"] = newRulesFolder[ruleNumber-1].add(customRules[ruleNumber-1], 'predecessor').name("Predecessor");
@@ -278,8 +307,9 @@ class Artwork {
             customRule_draw: "",
             customRule_start: ""
         };
+
         let modifierFunctions= { };
-        let gui = new dat.GUI({width: 300});
+        let gui = new dat.GUI({width: 350});
         modifierFunctions["renderer"] = gui.add(guiModifier, "renderer", ["SVG", "WebGL"]).name("Renderer");
         let cameraFolder = gui.addFolder('Camera Controller');
         modifierFunctions["cameraHeight"] = cameraFolder.add(guiModifier, "cameraHeight").name("Camera Height");
@@ -287,12 +317,15 @@ class Artwork {
         modifierFunctions["rotateCamera"] = cameraFolder.add(guiModifier, "rotateCamera").name("Rotate Camera");
         cameraFolder.open();
         let artworkFolder = gui.addFolder('Artwork Options');
+        let treeOptionActive = true;
         artworkFolder.add(guiModifier, 'redraw').name('Redraw');
         modifierFunctions['color'] = artworkFolder.addColor(guiModifier, 'color').name('Color');
         modifierFunctions["width"] = artworkFolder.add(guiModifier, "width").name("Width").min(1);
         modifierFunctions["length"] = artworkFolder.add(guiModifier, "length").name("Length").min(1);
         modifierFunctions["number"] = artworkFolder.add(guiModifier, "number").name("Number").min(0).step(1);
         modifierFunctions["rule"] = artworkFolder.add(guiModifier, "rule", Object.keys(ruleDict)).name("Rule");
+        modifierFunctions["tree_leaf_bool"] = artworkFolder.add(ruleDict["Ternary_Tree"].bool, "secondary").name("Tree with Leafs");
+        modifierFunctions["tree_tropism_rule"] = artworkFolder.add(ruleDict["Ternary_Tree"].bool, "tropism").name("Tree with Tropism");
         artworkFolder.open();
         let ruleFolder = gui.addFolder("Rule Folder");
         let newRulesFolder = [];
@@ -303,37 +336,73 @@ class Artwork {
         modifierFunctions["customRule_draw"] = ruleFolder.add(guiModifier, "customRule_draw").name("Symbols");
         ruleFolder.add(guiModifier, 'addRule').name("Add new Rule");
 
+        /**
+         * @function update
+         * @description updates the values in the menu if they are changed
+         */
         function update () {
             requestAnimationFrame ( update );
             for (let i in artworkFolder.__controllers) {
                 artworkFolder.__controllers[i].updateDisplay();
             }
+            for (let i in cameraFolder.__controllers) {
+                cameraFolder.__controllers[i].updateDisplay();
+            }
         }
+
+        /**
+         * @function loop
+         * @description defines the OnChange listener for the different menu options
+         * @param modifier
+         */
         function loop (modifier) {
             modifierFunctions[modifier].onChange(function (value) {
                 guiModifier[modifier] = value;
+                // change the renderer (SVG or WebGL)
                 if(modifier.localeCompare("renderer")===0){
                     if(guiModifier["renderer"].localeCompare("WebGL") === 0){
                         renderer = new THREE.WebGLRenderer({ alpha: true });
                     } else if(guiModifier["renderer"].localeCompare("SVG") === 0){
                         renderer = new THREE.SVGRenderer();
                         renderer.setClearColor(0xffffff);
-                        renderer.setQuality('low');
+                        renderer.setQuality('high');
                     }
                     artwork_wrapper.removeChild(artwork_wrapper.childNodes[0]);
                     artwork_wrapper.appendChild(renderer.domElement);
                     renderer.setSize(width,height);
                     controlCamera();
+                // updates the camera position
                 } else if(modifier.localeCompare("rotateCamera")===0 || modifier.localeCompare("cameraHeight")===0 || modifier.localeCompare("cameraDistance")===0) {
                     controlCamera();
+                // draws a rule if a new one is selected
                 } else if (modifier.localeCompare("rule")===0){
                     guiModifier.redraw(true);
+                    // enables additional options for Trees
+                    if (guiModifier["rule"].localeCompare("Ternary_Tree") === 0){
+                        modifierFunctions["tree_leaf_bool"] = artworkFolder.add(ruleDict["Ternary_Tree"].bool, "secondary").name("Tree with Leafs");
+                        modifierFunctions["tree_tropism_rule"] = artworkFolder.add(ruleDict["Ternary_Tree"].bool, "tropism").name("Tree with Tropism");
+                        treeOptionActive = true;
+                    }
+                    else {
+                        if(treeOptionActive){
+                            ruleDict["Ternary_Tree"].bool["secondary"] = false;
+                            artworkFolder.remove(modifierFunctions["tree_leaf_bool"]);
+                            artworkFolder.remove(modifierFunctions["tree_tropism_rule"]);
+                            treeOptionActive = false;
+                        }
+                    }
+                } else if(modifier.localeCompare("tree_leaf_bool")===0) {
+                    if(ruleDict["Ternary_Tree"].bool["secondary"])
+                        guiModifier["number"] = 4;
+                    else
+                        guiModifier["number"] = ruleDict["Ternary_Tree"].number;
                 }
             });
         }
         for (let modifier in modifierFunctions) {
             loop(modifier);
         }
+        //#endregion
 
         update();
         startLSystem(guiModifier["rule"], guiModifier["color"]);
@@ -385,7 +454,7 @@ class LSystem{
     constructor(begin, rules, params){
         this.ruleset = rules;
         this.current = begin;
-        this.parameter = (params === undefined || params === null) ? {} : params;
+        this.parameter = (params === undefined) ? {} : params;
         if(!(Object.keys(this.parameter).length === 0 &&  this.parameter.constructor === Object)){
             for(let i=0; i<this.ruleset.length; i++){
                 for(let j=0; j<this.ruleset[i].successor.length; j++){
@@ -399,7 +468,6 @@ class LSystem{
                 }
             }
         }
-        this.generation = 0;
     }
 
     /**
@@ -408,14 +476,6 @@ class LSystem{
      */
     getSentence(){
         return this.current;
-    }
-
-    /**
-     * @function getGeneration
-     * @returns {int}
-     */
-    getGeneration(){
-        return this.generation;
     }
 
     /**
@@ -507,7 +567,6 @@ class LSystem{
             next.append(replace.toString());
         }
         this.current = next.toString();
-        this.generation++;
     }
 }
 
@@ -516,6 +575,24 @@ class LSystem{
  * @description renders a given string
  */
 class LSystemDrawer{
+
+    /**
+     * @description constructor of LSystemDrawer
+     * @param sentence {String}
+     * @param color {String}
+     * @param length {float}
+     * @param width {float}
+     * @param angle {float}
+     * @param draw {String}
+     */
+    constructor(sentence, color, length, width, angle, draw){
+        this.current = sentence;
+        this.color = color;
+        this.length = length;
+        this.width = width;
+        this.rotation = angle;
+        this.draw = draw;
+    }
 
     setLength(l){
         this.length = l;
@@ -529,52 +606,50 @@ class LSystemDrawer{
         this.width = w;
     }
 
-    setToDo(sentence){
-        this.current = sentence;
-    }
-
-    setDrawSymbols(draw){
-        this.draw = draw;
-    }
-
-    setColor(color){
-        this.color = color;
-    }
-
-    setTropism(v, e){
+    // optional
+    setTropism(b, v, e){
+        this.tropismBool = b;
         this.tropism = v;
         this.e = e;
     }
 
-    setString(s){
-        this.string = s;
+    // optional
+    setSecondaryString(s){
+        this.secondaryString = s;
     }
 
-    render(bool){
+    /**
+     * @function render
+     * @description draws/renders a given string with given parameters as length, rotation angle, width, draw symbols, color, optional tropism and optional a secondary string
+     * @returns {Group}
+     */
+    //TODO Leafs on the tree are too expensive in runtime(improve render technology)
+    render(){
         let group = new THREE.Group();
 
         let leaf;
-        if(bool === undefined){
-            let turtle = new LSystemDrawer();
-            turtle.setToDo(this.string);
-            turtle.setWidth(3);
-            turtle.setLength(20);
-            turtle.setRotation(60);
-            turtle.setColor('#030');
-            leaf = turtle.render(true);
+        if(this.secondaryString !== undefined){
+            let turtle = new LSystemDrawer(this.secondaryString, "#030", 20, 3, 60);
+            leaf = turtle.render();
         }
 
         let lSystemCoordinateSystem = [new THREE.Vector4(0,0,0,1), new THREE.Vector4(1,0,0,1), new THREE.Vector4(0,1,0,1), new THREE.Vector4(0,0,1,1)];
-        let tempVertex;
+
+        // variables/stacks for the drawer
         let transformStack = [];
         let widthStack = [];
         let lengthStack = [];
+
+        // variables for the leafs
+        let tempVertex;
         let polygonStack = [];
         let vertices = [];
 
+        // loop through string that is drawn/rendered
         for (let i = 0; i<this.current.length; i++){
             let c = this.current.charAt(i);
 
+            // get optional parameters
             let params = [];
             if(this.current.charAt(i+1) === "("){
                 i = i+2;
@@ -596,20 +671,25 @@ class LSystemDrawer{
                 }
             }
 
-            if((this.draw === null || this.draw === undefined) ? /[A-Z]/.test(c) : this.draw.includes(c)){
+            // draw process
+            // upper case letters -> draw a line/cylinder
+            if((this.draw === undefined) ? /[A-Z]/.test(c) : this.draw.includes(c)){
                 if(params.length >= 1){
                     this.setLength(params[0]);
                     if(params.length >= 2)
                         this.setWidth(params[1])
                 }
+                //TODO optional fix branch width bug (smooth transitions between segments)
                 let material = new THREE.MeshBasicMaterial({color: this.color}); //'#050'
-                let geometry = new THREE.CylinderGeometry(this.width/2,this.width/2,this.length,20);
+                let geometry = new THREE.CylinderBufferGeometry(this.width/2,this.width/2,this.length,5,1,false);
                 let branch = new THREE.Mesh(geometry, material);
                 branch.applyMatrix( new THREE.Matrix4().makeTranslation( 0, this.length/2, 0 ) );
                 branch.applyMatrix(currentTransform);
                 group.add(branch);
 
-                if(!(this.tropism === undefined || this.tropism === null) && !(this.e === undefined || this.e === null || this.e === 0)) {
+                //TODO Tropism doesn't work properly for a wind vector (works only with gravity vector (0,-1,0))
+                // optional tropism
+                if(this.tropismBool) {
                     for (let j = 0; j < lSystemCoordinateSystem.length; j++)
                         lSystemCoordinateSystem[j].applyMatrix4(currentTransform);
 
@@ -632,17 +712,21 @@ class LSystemDrawer{
                 }
                 else
                     currentTransform.multiply(new THREE.Matrix4().makeTranslation(0,this.length,0));
-            }else if (c==='A'){
+            // letter A will draw the secondary string (used for leafs)
+            }else if (c==='A' && this.secondaryString!==undefined){
                 transformStack.push(new THREE.Matrix4().copy(currentTransform));
                 currentTransform.multiply(new THREE.Matrix4().makeScale(0.15,0.15,0.15));
                 let tempGroup = leaf.clone();
                 tempGroup.applyMatrix(currentTransform);
                 group.add(tempGroup);
                 currentTransform = transformStack.pop();
+            // lower case letter f will move forward a step without drawing a line/cylinder
             }else if (c === 'f') {
                 currentTransform.multiply(new THREE.Matrix4().makeTranslation(0,this.length,0));
+            // ! changes the width of the line/cylinder
             } else if (c === '!') {
                 this.setWidth(params[0]);
+            // rotation operators +,-,&,^,\,/ and |
             } else if (/[\+\-\/\\\&\^|]/.test(c)) {
                 if(params.length >= 1){
                     this.setRotation(params[0]);
@@ -662,15 +746,19 @@ class LSystemDrawer{
                 else if (c === '|')
                     currentTransform.multiply(new THREE.Matrix4().makeRotationZ((Math.PI / 180) * 180));
             } else if (c === '$') {
-
+                //TODO optional rotate L vector from Drawer to a horizontal position
+            // [ pushes the transformation matrix, width and length onto a stack
             } else if (c === '[') {
                 transformStack.push(new THREE.Matrix4().copy(currentTransform));
                 widthStack.push(this.width);
                 lengthStack.push(this.length);
+            // [ pops the transformation matrix, width and length from the stack
             } else if (c === ']') {
                 currentTransform = transformStack.pop();
                 this.width = widthStack.pop();
                 this.length = lengthStack.pop();
+            // operators for leafs
+            // . pushes a new vertex onto into an array
             } else if (c === '.') {
                 vertices.push(new THREE.Vector4().applyMatrix4(currentTransform));
 
@@ -682,9 +770,11 @@ class LSystemDrawer{
                 scene.add( sphere );
                 */
 
+            // { pushes the current vertices array onto a stack and creates a new array
             } else if (c === '{') {
                 polygonStack.push(vertices.slice(0));
                 vertices = [];
+            // } draws a polygon with the current vertices in the array and pops the old vertices from the stack
             } else if (c === '}') {
                 let g = new THREE.Geometry();
                 let m = new THREE.MeshBasicMaterial( { color : 0x00aa00 } );
