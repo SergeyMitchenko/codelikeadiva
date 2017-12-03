@@ -1,7 +1,5 @@
-import SVG from 'svg.js';
-import Victor from 'victor';
-import * as THREE from 'three';
-import dat from 'dat.gui/build/dat.gui.js';
+import * as THREE from '../../../customLib/three.module';
+import dat from 'dat.gui/build/dat.gui';
 
 var currentTransform = new THREE.Matrix4();
 
@@ -21,11 +19,11 @@ class Artwork {
         let height = document.getElementById('artwork-wrapper').getBoundingClientRect().height - 2;
 
         // initialization of camera
-        var camera = new THREE.PerspectiveCamera(75, width/height, 0.1, 10000);
+        let camera = new THREE.PerspectiveCamera(75, width/height, 0.1, 10000);
         camera.position.set(0,0,0);
         camera.lookAt(new THREE.Vector3(0,0,0));
         let id;
-        let angleCamera = 0;
+        let angleCamera = (Math.PI / 180) * 90;
 
         /**
          * Camera animation functions
@@ -53,12 +51,12 @@ class Artwork {
         }
 
         //initialization of the renderer
-        var renderer = new THREE.WebGLRenderer({ alpha: true });
-        //var renderer = new SVGRenderer();
-        //renderer.setClearColor(0xffffff);
-        //renderer.setQuality('high');
+        let renderer = new THREE.SVGRenderer();
+        renderer.setClearColor(0xffffff);
+        renderer.setQuality('low');
         renderer.setSize(width,height);
-        document.getElementById("artwork-wrapper").appendChild(renderer.domElement);
+        let artwork_wrapper = document.getElementById("artwork-wrapper");
+        artwork_wrapper.appendChild(renderer.domElement);
 
         /**
          * rule dictionary for all examples
@@ -70,7 +68,7 @@ class Artwork {
          * draw: {String} which symbols are drawn by the interpreter
          * params: {Dictinary} starting parameters
          */
-        let ruleDict = {
+        var ruleDict = {
             "2DTree" : {rule : [new Rule("F", null,[["FF-[-F+F+F]+[+F-F-F]"]],[[1]])] , start : "F", angle : 22.5, number : 3, draw:"F"},
             "Quadratic_Koch_Island" : {rule: [new Rule("F", null,[["F-F+F+FF-F-F+F"]],[[1]])], start : "F-F-F-F", angle: 90, number : 2, draw:"F"},
             "Dense_Koch_Curve": {rule: [new Rule("F", null,[["F-FF--F-F"]],[[1]])], start : "F-F-F-F", angle:90, number: 3, draw:"F"},
@@ -120,7 +118,7 @@ class Artwork {
                     [["!(w*vr)"]],
                     [[1]]
                 ),
-            ], start: "!(1)F(200)/(45)A", number:6, draw:"F", params:{"da":137.5, "db":137.5, "a":18.95, "lr":1.109, "vr":1.732}},
+            ], start: "!(1)F(200)/(45)A", number:1, draw:"F", params:{"da":137.5, "db":137.5, "a":18.95, "lr":1.109, "vr":1.732, "e":0.14, "tropism": new THREE.Vector3(0,-1,0)}},
             "RoseLeaf" : { rule: [
                 new Rule(
                     "A(t,d)",
@@ -154,7 +152,7 @@ class Artwork {
                     [["H(s*r,r,t-1)"]],
                     [[1]]
                 )
-            ], start: "[{A(0,0).}][{A(0,1).}]", number:25, angle: 60, params:{"LA":5, "RA":1.15, "LB":1.3, "RB":1.25, "LC":3, "RC":1.19}},
+            ], start: "[{A(0,0).}][{A(0,1).}]", number:20, angle: 60, params:{"LA":5.0, "RA":1.15, "LB":1.3, "RB":1.25, "LC":3.0, "RC":1.19}},
             "Leaf" : { rule: [
                 new Rule(
                     "A",
@@ -174,12 +172,13 @@ class Artwork {
                     [["GC"]],
                     [[1]]
                 )
-            ], start: "[A][B]", number:20, angle:10}
+            ], start: "[A][B]", number:20, angle:10},
+            "Custom": {}
         };
 
         /**
          * generates and draws the given rule of the dictionary
-         * @method startLSystem
+         * @function startLSystem
          * @param {String} name - name of the rule
          * @param {String} color - string of a color hex (example: "#ff00ff")
          * @param {int} n - number of generations
@@ -191,11 +190,11 @@ class Artwork {
             let lsys = new LSystem(ruleDict[name].start, ruleDict[name].rule, ruleDict[name].params);
             let turtle = new LSystemDrawer();
 
-            console.log(lsys.getSentence());
+            //console.log(lsys.getSentence());
 
             for(let i = 0; i<((n === undefined || n === null) ? ruleDict[name].number : n); i++){
                 lsys.generate();
-                console.log(lsys.getSentence());
+                //console.log(lsys.getSentence());
             }
 
             turtle.setToDo(lsys.getSentence());
@@ -203,38 +202,85 @@ class Artwork {
             turtle.setLength(((l === undefined || l === null) ? 20 : l));
             turtle.setRotation(((r === undefined || r === null) ? ruleDict[name].angle : r));
             turtle.setDrawSymbols(ruleDict[name].draw);
+            if(ruleDict[name].params !== undefined && ruleDict[name].params !== null && ruleDict[name].params["tropism"] !== undefined && ruleDict[name].params["tropism"] !== null && ruleDict[name].params["e"] !== undefined && ruleDict[name].params["e"] !== null && ruleDict[name].params["e"] !== 0)
+                turtle.setTropism(ruleDict[name].params["tropism"], ruleDict[name].params["e"]);
             turtle.setColor(color);
-            turtle.render();
+
+
+            let lsys_leaf = new LSystem(ruleDict["RoseLeaf"].start, ruleDict["RoseLeaf"].rule, ruleDict["RoseLeaf"].params);
+            for(let i = 0; i<ruleDict["RoseLeaf"].number; i++){
+                lsys_leaf.generate();
+            }
+            turtle.setString(lsys_leaf.getSentence());
+
+
+            scene.add(turtle.render());
         }
 
-        //TODO Menu
         //TODO Branching (wind)
-        //TODO $
-        //TODO Leafes
-        //TODO Bracnh width
-        //TODO SVG Renderer
+        //TODO Leafes to Tree
         //TODO Comments and Explanation
 
+        //TODO $
+        //TODO Bracnh width
         let guiModifier = {
+            renderer : "SVG",
             cameraHeight: 0,
             cameraDistance: 1000,
-            rotateCamera: true,
+            rotateCamera: false,
             color: "#ff0066",
             width: 3,
             length: 20,
-            number: 2,
+            number: ruleDict["TernaryTree"].number,
             rule: "TernaryTree",
-            redraw: function redraw() {
+            redraw: function redraw(bool) {
                 while(scene.children.length > 0){
                     scene.remove(scene.children[0]);
                 }
                 currentTransform.identity();
-                startLSystem(guiModifier["rule"], guiModifier["color"],guiModifier["number"], guiModifier["width"], guiModifier["length"], null);
+                if(guiModifier["rule"].localeCompare("Custom") === 0) {
+                    if(bool === undefined){
+                        if(guiModifier["customRule_angle"] !== 0 && guiModifier["customRule_start"].localeCompare("") !== 0 && customRules.length > 0){
+                            for(let i = 0; i<customRules.length; i++){
+                                customRules[i].successor = [[customRules[i].successorHelper]];
+                            }
+                            let drawTemp;
+                            if(guiModifier["customRule_draw"].localeCompare("none") === 0)
+                                drawTemp = "";
+                            else if (guiModifier["customRule_draw"].localeCompare("") === 0 || guiModifier["customRule_draw"].localeCompare("all") === 0 )
+                                drawTemp = undefined;
+                            else
+                                drawTemp = guiModifier["customRule_draw"];
+                            ruleDict["Custom"] = { rule: customRules, start: guiModifier["customRule_start"], angle: guiModifier["customRule_angle"], number:guiModifier["number"], draw:drawTemp};
+                            startLSystem("Custom", guiModifier["color"],guiModifier["number"], guiModifier["width"], guiModifier["length"], null);
+                        }
+                        else
+                            alert("Not all parameters of the custom rule are defined!");
+                    } else {
+                        guiModifier["number"] = 0;
+                    }
+                }
+                else {
+                    if(bool !== undefined)
+                        guiModifier["number"] = ruleDict[guiModifier["rule"]]["number"];
+                    startLSystem(guiModifier["rule"], guiModifier["color"],guiModifier["number"], guiModifier["width"], guiModifier["length"], null);
+                }
                 controlCamera();
-            }
+            },
+            addRule: function addRule() {
+                newRulesFolder.push(ruleFolder.addFolder("Rule " + ruleNumber));
+                customRules.push(new Rule("", null, [[""]], [[1]]));
+                modifierFunctions["customRule_"+ruleNumber+"_pre"] = newRulesFolder[ruleNumber-1].add(customRules[ruleNumber-1], 'predecessor').name("Predecessor");
+                modifierFunctions["customRule_"+ruleNumber+"_suc"] = newRulesFolder[ruleNumber-1].add(customRules[ruleNumber-1], 'successorHelper').name("Successor");
+                ruleNumber++;
+            },
+            customRule_angle: 0,
+            customRule_draw: "",
+            customRule_start: ""
         };
         let modifierFunctions= { };
         let gui = new dat.GUI({width: 300});
+        modifierFunctions["renderer"] = gui.add(guiModifier, "renderer", ["SVG", "WebGL"]).name("Renderer");
         let cameraFolder = gui.addFolder('Camera Controller');
         modifierFunctions["cameraHeight"] = cameraFolder.add(guiModifier, "cameraHeight").name("Camera Height");
         modifierFunctions["cameraDistance"] = cameraFolder.add(guiModifier, "cameraDistance").name("Camera Distance").min(0);
@@ -245,9 +291,17 @@ class Artwork {
         modifierFunctions['color'] = artworkFolder.addColor(guiModifier, 'color').name('Color');
         modifierFunctions["width"] = artworkFolder.add(guiModifier, "width").name("Width").min(1);
         modifierFunctions["length"] = artworkFolder.add(guiModifier, "length").name("Length").min(1);
-        modifierFunctions["number"] = artworkFolder.add(guiModifier, "number").name("Number").min(0).step(1).listen();
+        modifierFunctions["number"] = artworkFolder.add(guiModifier, "number").name("Number").min(0).step(1);
         modifierFunctions["rule"] = artworkFolder.add(guiModifier, "rule", Object.keys(ruleDict)).name("Rule");
         artworkFolder.open();
+        let ruleFolder = gui.addFolder("Rule Folder");
+        let newRulesFolder = [];
+        let customRules = [];
+        let ruleNumber = 1;
+        modifierFunctions["customRule_start"] = ruleFolder.add(guiModifier, "customRule_start").name("Axiom");
+        modifierFunctions["customRule_angle"] = ruleFolder.add(guiModifier, "customRule_angle").name("Angle");
+        modifierFunctions["customRule_draw"] = ruleFolder.add(guiModifier, "customRule_draw").name("Symbols");
+        ruleFolder.add(guiModifier, 'addRule').name("Add new Rule");
 
         function update () {
             requestAnimationFrame ( update );
@@ -258,16 +312,22 @@ class Artwork {
         function loop (modifier) {
             modifierFunctions[modifier].onChange(function (value) {
                 guiModifier[modifier] = value;
-                if(modifier.localeCompare("rotateCamera")===0 || modifier.localeCompare("cameraHeight")===0 || modifier.localeCompare("cameraDistance")===0)
-                    controlCamera();
-                else if (modifier.localeCompare("rule")===0){
-                    guiModifier["number"] = ruleDict[guiModifier["rule"]]["number"];
-                    while(scene.children.length > 0){
-                        scene.remove(scene.children[0]);
+                if(modifier.localeCompare("renderer")===0){
+                    if(guiModifier["renderer"].localeCompare("WebGL") === 0){
+                        renderer = new THREE.WebGLRenderer({ alpha: true });
+                    } else if(guiModifier["renderer"].localeCompare("SVG") === 0){
+                        renderer = new THREE.SVGRenderer();
+                        renderer.setClearColor(0xffffff);
+                        renderer.setQuality('low');
                     }
-                    currentTransform.identity();
-                    startLSystem(guiModifier["rule"], guiModifier["color"],guiModifier["number"], guiModifier["width"], guiModifier["length"], null);
+                    artwork_wrapper.removeChild(artwork_wrapper.childNodes[0]);
+                    artwork_wrapper.appendChild(renderer.domElement);
+                    renderer.setSize(width,height);
                     controlCamera();
+                } else if(modifier.localeCompare("rotateCamera")===0 || modifier.localeCompare("cameraHeight")===0 || modifier.localeCompare("cameraDistance")===0) {
+                    controlCamera();
+                } else if (modifier.localeCompare("rule")===0){
+                    guiModifier.redraw(true);
                 }
             });
         }
@@ -284,9 +344,9 @@ class Artwork {
 export default Artwork;
 
 /**
- * Class Rule for the L-System
- * Rule is a production and consists of an predecessor and successors
- * Optional it is possible to define conditions and probabilities
+ * @class Rule - for the L-System
+ * @description Rule is a production and consists of an predecessor and successors
+ * @description Optional it is possible to define conditions and probabilities
  */
 class Rule{
     /**
@@ -306,10 +366,22 @@ class Rule{
             this.condition = cond;
         this.successor = suc;
         this.probabilty = prob;
+        this.successorHelper = "";
     }
 }
 
+/**
+ * @class LSystem - for the Lindenmayer-System
+ * @description generates next String according to the given L-System Rules
+ */
 class LSystem{
+    /**
+     * constructor of the class LSystem
+     * @param {String} begin - Axiom of the L-System
+     * @param {Rule[]} rules - Array of Rules
+     * @param {Object.<string, float>} params - starting parameters
+     * @description if params is defines, then every string of params gets replaced with the float number in all successors of the rules
+     */
     constructor(begin, rules, params){
         this.ruleset = rules;
         this.current = begin;
@@ -330,14 +402,26 @@ class LSystem{
         this.generation = 0;
     }
 
+    /**
+     * @function getSentence
+     * @returns {String}
+     */
     getSentence(){
         return this.current;
     }
 
+    /**
+     * @function getGeneration
+     * @returns {int}
+     */
     getGeneration(){
         return this.generation;
     }
 
+    /**
+     * @function generate
+     * @description apply the rules on the current string
+     */
     generate(){
         let next = new StringBuffer();
         let params = this.current.match(/\(([+-]?\d+(\.\d+)?)(,[+-]?\d+(\.\d+)?)*\)/g);
@@ -346,15 +430,19 @@ class LSystem{
         let random = 0;
         let number = 0;
 
+        // iterates through the current string
         for(let i=0; i<this.current.length; i++){
             let c = this.current.charAt(i);
             let replace = new StringBuffer();
             replace.append("" + c);
 
+            // iterates through all given rules
             ruleLabel:
             for (let r of this.ruleset){
                 if(r.predecessor.charAt(0) === c){
+                    // checks if the current symbol is parametric
                     if(this.current.charAt(i+1) === "("){
+                        // get the necessary parameters
                         let split = r.predecessor.split(/[(),]/g).filter(function(string){return string !== "";});
                         let dict = {};
                         let paramsSplit = params[paramsCounter].split(/[(),]/g).filter(function(string){return string !== "";});
@@ -363,14 +451,17 @@ class LSystem{
                             dict[split[k]] = parseFloat(paramsSplit[k-1]);
                         }
 
+                        // iterate through the conditions
                         for(let k=0; k<r.condition.length; k++){
                             if(r.condition[k](dict)){
                                 replace.clear();
                                 random = Math.random();
                                 number = 0;
+                                // iterate through the probabilities
                                 for(let j=0; j<r.probabilty[k].length; j++){
                                     number += r.probabilty[k][j];
                                     if(random<=number){
+                                        // replacement process
                                         let sucSplit = r.successor[k][j].split(/[()]/g).filter(function(string){return string !== "";});
                                         for(let m =0; m<sucSplit.length; m++){
                                             if(m%2===0)
@@ -397,6 +488,7 @@ class LSystem{
                         }
                     }
                     else{
+                        // if the symbol is not parametric only check for probabilities
                         random = Math.random();
                         number = 0;
                         for(let j=0; j<r.probabilty[0].length; j++){
@@ -419,10 +511,11 @@ class LSystem{
     }
 }
 
+/**
+ * @class LSystemDrawer - the interpreter of the Lindenmayer-System string
+ * @description renders a given string
+ */
 class LSystemDrawer{
-
-    constructor(){
-    }
 
     setLength(l){
         this.length = l;
@@ -448,7 +541,30 @@ class LSystemDrawer{
         this.color = color;
     }
 
-    render(){
+    setTropism(v, e){
+        this.tropism = v;
+        this.e = e;
+    }
+
+    setString(s){
+        this.string = s;
+    }
+
+    render(bool){
+        let group = new THREE.Group();
+
+        let leaf;
+        if(bool === undefined){
+            let turtle = new LSystemDrawer();
+            turtle.setToDo(this.string);
+            turtle.setWidth(3);
+            turtle.setLength(20);
+            turtle.setRotation(60);
+            turtle.setColor('#030');
+            leaf = turtle.render(true);
+        }
+
+        let lSystemCoordinateSystem = [new THREE.Vector4(0,0,0,1), new THREE.Vector4(1,0,0,1), new THREE.Vector4(0,1,0,1), new THREE.Vector4(0,0,1,1)];
         let tempVertex;
         let transformStack = [];
         let widthStack = [];
@@ -491,10 +607,39 @@ class LSystemDrawer{
                 let branch = new THREE.Mesh(geometry, material);
                 branch.applyMatrix( new THREE.Matrix4().makeTranslation( 0, this.length/2, 0 ) );
                 branch.applyMatrix(currentTransform);
+                group.add(branch);
 
-                currentTransform.multiply(new THREE.Matrix4().makeTranslation(0,this.length,0));
-                scene.add(branch);
-            } else if (c === 'f') {
+                if(!(this.tropism === undefined || this.tropism === null) && !(this.e === undefined || this.e === null || this.e === 0)) {
+                    for (let j = 0; j < lSystemCoordinateSystem.length; j++)
+                        lSystemCoordinateSystem[j].applyMatrix4(currentTransform);
+
+                    let head_vector = new THREE.Vector4().subVectors(lSystemCoordinateSystem[2], lSystemCoordinateSystem[0]).multiplyScalar(this.length);
+                    let temp = new THREE.Vector3().crossVectors(new THREE.Vector3(head_vector.getComponent(0), head_vector.getComponent(1), head_vector.getComponent(2)), this.tropism);
+                    let alpha = temp.length() * this.e;
+                    let tropismRotationMatrix = new THREE.Matrix4().makeRotationAxis(temp.normalize(), (Math.PI / 180) * alpha);
+
+                    let tempMatrix = new THREE.Matrix4().multiplyMatrices(currentTransform, tropismRotationMatrix);
+                    lSystemCoordinateSystem = [new THREE.Vector4(0, 0, 0, 1), new THREE.Vector4(1, 0, 0, 1), new THREE.Vector4(0, 1, 0, 1), new THREE.Vector4(0, 0, 1, 1)];
+                    for (let j = 0; j < lSystemCoordinateSystem.length; j++)
+                        lSystemCoordinateSystem[j].applyMatrix4(tempMatrix);
+                    let head_vector_rotated = new THREE.Vector4().subVectors(lSystemCoordinateSystem[2], lSystemCoordinateSystem[0]).multiplyScalar(this.length);
+                    if (this.tropism.angleTo(new THREE.Vector3(head_vector.getComponent(0), head_vector.getComponent(1), head_vector.getComponent(2))) < this.tropism.angleTo(new THREE.Vector3(head_vector_rotated.getComponent(0), head_vector_rotated.getComponent(1), head_vector_rotated.getComponent(2))))
+                        tropismRotationMatrix = new THREE.Matrix4().makeRotationAxis(temp.normalize(), (Math.PI / 180) * -alpha);
+
+                    lSystemCoordinateSystem = [new THREE.Vector4(0, 0, 0, 1), new THREE.Vector4(1, 0, 0, 1), new THREE.Vector4(0, 1, 0, 1), new THREE.Vector4(0, 0, 1, 1)];
+                    currentTransform.multiply(new THREE.Matrix4().makeTranslation(0,this.length,0));
+                    currentTransform.multiply(tropismRotationMatrix);
+                }
+                else
+                    currentTransform.multiply(new THREE.Matrix4().makeTranslation(0,this.length,0));
+            }else if (c==='A'){
+                transformStack.push(new THREE.Matrix4().copy(currentTransform));
+                currentTransform.multiply(new THREE.Matrix4().makeScale(0.15,0.15,0.15));
+                let tempGroup = leaf.clone();
+                tempGroup.applyMatrix(currentTransform);
+                group.add(tempGroup);
+                currentTransform = transformStack.pop();
+            }else if (c === 'f') {
                 currentTransform.multiply(new THREE.Matrix4().makeTranslation(0,this.length,0));
             } else if (c === '!') {
                 this.setWidth(params[0]);
@@ -541,7 +686,6 @@ class LSystemDrawer{
                 polygonStack.push(vertices.slice(0));
                 vertices = [];
             } else if (c === '}') {
-
                 let g = new THREE.Geometry();
                 let m = new THREE.MeshBasicMaterial( { color : 0x00aa00 } );
                 m.side = THREE.DoubleSide;
@@ -560,26 +704,47 @@ class LSystemDrawer{
                     g.faces.push( new THREE.Face3( 0, 1, 3), new THREE.Face3( 1, 2, 3));
                 }
 
-                scene.add( new THREE.Mesh( g, m ) );
+                group.add( new THREE.Mesh( g, m ) );
                 vertices = polygonStack.pop();
             }
         }
+        return group;
     }
 }
 
+/**
+ * @class StringBuffer
+ * @constructor
+ * @description to improve the run time
+ */
 function StringBuffer() {
     this.buffer = new Array;
 }
 
+/**
+ * @description basic functions for the StringBuffer
+ * @type {{append: StringBuffer.append, toString: StringBuffer.toString, clear: StringBuffer.clear}}
+ */
 StringBuffer.prototype = {
+    /**
+     * @description appends a String to the buffer
+     * @param {String} s
+     */
     append: function (s) {
         this.buffer.push(s);
     },
 
+    /**
+     * @description returns the joined String from the buffer
+     * @returns {String}
+     */
     toString: function () {
         return this.buffer.join("");
     },
 
+    /**
+     * @description clears the buffer
+     */
     clear: function () {
         this.buffer.length = 0;
     }
