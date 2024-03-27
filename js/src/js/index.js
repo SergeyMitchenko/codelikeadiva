@@ -1,5 +1,5 @@
 import Project from './project';
-import ChallengeCode from './my-code/index';
+import ChallengeCode from './my-code';
 
 document.addEventListener('DOMContentLoaded', () => {
   // general project code [PLEASE KEEP THAT CODE!]

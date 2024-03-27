@@ -1,6 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const projectSettings = require('./project.settings.js');
 
 const pluginHtml = new HtmlWebpackPlugin({
@@ -11,11 +11,12 @@ const pluginHtml = new HtmlWebpackPlugin({
   challengeTitle: `[vol. ${projectSettings.vol}] "${projectSettings.subtitle}"`,
 });
 
-const pluginExtractSass = new ExtractTextPlugin({
+const pluginExtractSass = new MiniCssExtractPlugin({
   filename: '[name].css'
 });
 
 module.exports = {
+  mode: 'development',
   entry: [
     './src/js/index',
     './src/scss/index.scss'
@@ -31,32 +32,16 @@ module.exports = {
         exclude: /node_modules/,
         loader: 'babel-loader',
         options: {
-          presets: [
-            ["env", {
-              "targets": {
-                "browsers": ["last 2 versions"]
-              }
-            }]
-          ],
+          presets: ['@babel/preset-env'],
         }
       },
       {
         test: /\.scss$/,
-        use: ExtractTextPlugin.extract({
-          use: [
-            {
-              loader: 'css-loader'
-            }, {
-              loader: 'sass-loader',
-              options: {
-                includePaths: [
-                  path.resolve(__dirname, './src/scss')
-                ]
-              }
-            }
-          ],
-          fallback: 'style-loader'
-        })
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+          'sass-loader'
+        ],
       },
     ]
   },
@@ -65,6 +50,6 @@ module.exports = {
     pluginExtractSass
   ],
   devServer: {
-    contentBase: './dist'
+    // contentBase: './dist'
   },
 };
